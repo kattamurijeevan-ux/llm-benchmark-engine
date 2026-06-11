@@ -33,7 +33,7 @@ def _load_medqa(n: int) -> list[dict]:
     return results
 
 def _load_gsm8k(n: int) -> list[dict]:
-    ds = load_dataset("gsm8k", "main", split="test", trust_remote_code=True)
+    ds = load_dataset("openai/gsm8k", "main", split="test", trust_remote_code=True)
     samples = random.sample(list(ds), min(n, len(ds)))
     return [
         {
