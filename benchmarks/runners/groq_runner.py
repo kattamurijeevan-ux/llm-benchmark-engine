@@ -7,9 +7,9 @@ load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 MODELS = {
-    "llama3-70b": "llama-3.1-70b-versatile",
-    "mixtral":    "mixtral-8x7b-32768",
-    "gemma":      "gemma-7b-it"
+    "llama3-70b": "llama-3.3-70b-versatile",
+    "llama3-8b":  "llama-3.1-8b-instant",
+    "qwen":       "qwen/qwen3-32b"
 }
 
 SYSTEM_PROMPTS = {

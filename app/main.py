@@ -13,7 +13,7 @@ app = FastAPI(
 def root():
     return {
         "service": "LLM Benchmark Engine",
-        "models":  ["llama3-70b", "mixtral", "gemma"],
+        "models":  ["llama3-70b", "llama3-8b", "qwen"],
         "domains": ["medical", "math", "coding", "reasoning"]
     }
 

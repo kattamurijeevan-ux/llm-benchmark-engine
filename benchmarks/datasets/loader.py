@@ -14,12 +14,7 @@ def load_samples(domain: str, num_samples: int) -> list[dict]:
         raise ValueError(f"Unknown domain: {domain}. Choose: medical, math, coding, reasoning")
 
 def _load_medqa(n: int) -> list[dict]:
-    ds = load_dataset(
-        "bigbio/med_qa",
-        "med_qa_en_source",
-        split="test",
-        trust_remote_code=True
-    )
+    ds = load_dataset("bigbio/med_qa", "med_qa_en_source", split="test")
     samples = random.sample(list(ds), min(n, len(ds)))
     results = []
     for s in samples:
@@ -33,7 +28,7 @@ def _load_medqa(n: int) -> list[dict]:
     return results
 
 def _load_gsm8k(n: int) -> list[dict]:
-    ds = load_dataset("openai/gsm8k", "main", split="test", trust_remote_code=True)
+    ds = load_dataset("openai/gsm8k", "main", split="test")
     samples = random.sample(list(ds), min(n, len(ds)))
     return [
         {
@@ -45,7 +40,7 @@ def _load_gsm8k(n: int) -> list[dict]:
     ]
 
 def _load_humaneval(n: int) -> list[dict]:
-    ds = load_dataset("openai_humaneval", split="test", trust_remote_code=True)
+    ds = load_dataset("openai_humaneval", split="test")
     samples = random.sample(list(ds), min(n, len(ds)))
     return [
         {
@@ -58,12 +53,7 @@ def _load_humaneval(n: int) -> list[dict]:
     ]
 
 def _load_hotpotqa(n: int) -> list[dict]:
-    ds = load_dataset(
-        "hotpot_qa",
-        "fullwiki",
-        split="validation",
-        trust_remote_code=True
-    )
+    ds = load_dataset("hotpot_qa", "fullwiki", split="validation")
     samples = random.sample(list(ds), min(n, len(ds)))
     return [
         {
