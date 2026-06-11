@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Benchmark Engine — Leaderboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg:        #0a0e14;
+    --surface:   #111720;
+    --surface2:  #171f2b;
+    --border:    #1e2a38;
+    --accent:    #00d4ff;
+    --accent2:   #7c3aed;
+    --warn:      #f59e0b;
+    --danger:    #ef4444;
+    --success:   #10b981;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 6px;
+    letter-spacing: -.02em;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+  .meta-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .badge-blue  { color: var(--accent);   border-color: var(--accent);   background: rgba(0,212,255,.07); }
+  .badge-green { color: var(--success);  border-color: var(--success);  background: rgba(16,185,129,.07); }
+  .badge-purple{ color: #a78bfa;         border-color: #7c3aed;         background: rgba(124,58,237,.07); }
+
+  /* ── Section label ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 32px 40px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Summary cards ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    padding: 28px 32px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-card:last-child { border-right: none; }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -.03em;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: var(--mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  /* ── Leaderboard table ── */
+  .table-wrap { padding: 0 40px 32px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 14px;
+    text-align: left;
+  }
+  th.right { text-align: right; }
+  td {
+    padding: 13px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .model-name {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .domain-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .d-math     { background: rgba(0,212,255,.1);   color: var(--accent); }
+  .d-medical  { background: rgba(16,185,129,.1);  color: var(--success); }
+  .d-coding   { background: rgba(124,58,237,.1);  color: #a78bfa; }
+  .d-reasoning{ background: rgba(245,158,11,.1);  color: var(--warn); }
+
+  .bar-cell { min-width: 140px; }
+  .bar-bg {
+    background: var(--border);
+    border-radius: 2px;
+    height: 5px;
+    overflow: hidden;
+  }
+  .bar-fill { height: 5px; border-radius: 2px; transition: width .4s ease; }
+  .bar-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .hallu-pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .h-low  { background: rgba(16,185,129,.12); color: var(--success); }
+  .h-mid  { background: rgba(245,158,11,.12); color: var(--warn); }
+  .h-high { background: rgba(239,68,68,.12);  color: var(--danger); }
+
+  .latency { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
+  .winner-row td { background: rgba(0,212,255,.04); }
+
+  /* ── Domain grid ── */
+  .domain-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 0 40px 40px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .domain-card {
+    background: var(--surface);
+    padding: 24px 28px;
+  }
+  .domain-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .model-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .model-row:last-child { margin-bottom: 0; }
+  .mr-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    width: 90px;
+    flex-shrink: 0;
+  }
+  .mr-bar { flex: 1; }
+  .mr-score {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    width: 38px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Insight box ── */
+  .insights { padding: 0 40px 0; display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 40px; }
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 22px;
+  }
+  .insight-header {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .insight-body {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .insight-body strong { color: var(--accent); font-weight: 600; }
+
+  /* ── Footer ── */
+  footer {
+    padding: 24px 40px 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer p { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 900px) {
+    header, .section-label, .table-wrap, .insights, footer { padding-left: 20px; padding-right: 20px; }
+    .summary-grid { grid-template-columns: repeat(2,1fr); }
+    .domain-grid { grid-template-columns: 1fr; margin: 0 20px 32px; }
+    .insights { grid-template-columns: 1fr; margin: 0 20px 32px; }
+    h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">LLM Benchmark Engine</div>
+    <h1>Model Leaderboard</h1>
+    <p class="subtitle">240 samples · 3 models · 4 domains · Groq inference</p>
+  </div>
+  <div class="meta-badges">
+    <span class="badge badge-blue">llama3-70b</span>
+    <span class="badge badge-green">llama3-8b</span>
+    <span class="badge badge-purple">qwen-32b</span>
+  </div>
+</header>
+
+<!-- Summary stats -->
+<div class="section-label">Overview</div>
+<div class="summary-grid">
+  <div class="stat-card">
+    <div class="stat-value" style="color:var(--accent)">95%</div>
+    <div class="stat-label">Peak accuracy</div>
+    <div class="stat-sub">llama3-70b · math</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color:var(--danger)">65%</div>
+    <div class="stat-label">Highest hallucination</div>
+    <div class="stat-sub">qwen-32b · math domain</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color:var(--success)">170ms</div>
+    <div class="stat-label">Fastest avg latency</div>
+    <div class="stat-sub">llama3-70b · medical</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color:var(--warn)">5.9s</div>
+    <div class="stat-label">Slowest avg latency</div>
+    <div class="stat-sub">qwen-32b · coding (thinking tokens)</div>
+  </div>
+</div>
+
+<!-- Full leaderboard table -->
+<div class="section-label">Full results — 20 samples per run</div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Model</th>
+        <th>Domain</th>
+        <th>Accuracy</th>
+        <th class="right">Hallucination</th>
+        <th class="right">Avg Latency</th>
+        <th class="right">Tokens</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard-body"></tbody>
+  </table>
+</div>
+
+<!-- Per-domain breakdown -->
+<div class="section-label">Per-domain breakdown</div>
+<div class="domain-grid">
+  <div class="domain-card">
+    <div class="domain-title" style="color:var(--accent)">◆ Math — GSM8K</div>
+    <div class="model-row">
+      <span class="mr-name">llama3-70b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:95%;background:var(--accent)"></div></div></div>
+      <span class="mr-score" style="color:var(--accent)">95%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">llama3-8b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:80%;background:#60a5fa"></div></div></div>
+      <span class="mr-score" style="color:#60a5fa">80%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">qwen-32b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:35%;background:var(--danger)"></div></div></div>
+      <span class="mr-score" style="color:var(--danger)">35%</span>
+    </div>
+  </div>
+
+  <div class="domain-card">
+    <div class="domain-title" style="color:var(--success)">◆ Medical — MedMCQA</div>
+    <div class="model-row">
+      <span class="mr-name">llama3-70b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:70%;background:var(--success)"></div></div></div>
+      <span class="mr-score" style="color:var(--success)">70%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">llama3-8b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:50%;background:#34d399"></div></div></div>
+      <span class="mr-score" style="color:#34d399">50%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">qwen-32b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:25%;background:var(--danger)"></div></div></div>
+      <span class="mr-score" style="color:var(--danger)">25%</span>
+    </div>
+  </div>
+
+  <div class="domain-card">
+    <div class="domain-title" style="color:#a78bfa">◆ Coding — HumanEval</div>
+    <div class="model-row">
+      <span class="mr-name">llama3-70b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:70%;background:#a78bfa"></div></div></div>
+      <span class="mr-score" style="color:#a78bfa">70%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">qwen-32b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:65%;background:#8b5cf6"></div></div></div>
+      <span class="mr-score" style="color:#8b5cf6">65%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">llama3-8b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:60%;background:var(--warn)"></div></div></div>
+      <span class="mr-score" style="color:var(--warn)">60%</span>
+    </div>
+  </div>
+
+  <div class="domain-card">
+    <div class="domain-title" style="color:var(--warn)">◆ Reasoning — TriviaQA</div>
+    <div class="model-row">
+      <span class="mr-name">qwen-32b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:85%;background:var(--warn)"></div></div></div>
+      <span class="mr-score" style="color:var(--warn)">85%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">llama3-70b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:80%;background:#fbbf24"></div></div></div>
+      <span class="mr-score" style="color:#fbbf24">80%</span>
+    </div>
+    <div class="model-row">
+      <span class="mr-name">llama3-8b</span>
+      <div class="mr-bar"><div class="bar-bg"><div class="bar-fill" style="width:70%;background:#f59e0b"></div></div></div>
+      <span class="mr-score" style="color:#f59e0b">70%</span>
+    </div>
+  </div>
+</div>
+
+<!-- Key insights -->
+<div class="section-label">Key findings</div>
+<div class="insights">
+  <div class="insight-card">
+    <div class="insight-header">Qwen-32b reasoning anomaly</div>
+    <div class="insight-body">Qwen-32b scores <strong>85% on reasoning</strong> but only 35% on math and 25% on medical. Its thinking-token architecture excels at factual recall but fails at structured numeric output — our <code>####</code> parser doesn't match its format, inflating the math failure rate.</div>
+  </div>
+  <div class="insight-card">
+    <div class="insight-header">llama3-70b dominates structured tasks</div>
+    <div class="insight-body">Llama 3.3 70B is the clear winner on tasks requiring formatted output: <strong>95% math, 70% medical, 70% coding</strong>. It also delivers the fastest latency on medical (170ms) despite being the largest model — Groq's LPU hardware advantage.</div>
+  </div>
+  <div class="insight-card">
+    <div class="insight-header">Size ≠ speed on math</div>
+    <div class="insight-body">llama3-8b takes <strong>2369ms on math</strong> vs 669ms for llama3-70b — the smaller model generates longer chain-of-thought reasoning before reaching the answer, costing more time despite fewer parameters. Latency is not simply correlated with model size.</div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <p>LLM Benchmark Engine · Built by Jeevan Kattamuri · <a href="https://github.com/kattamurijeevan-ux/llm-benchmark-engine" target="_blank">github.com/kattamurijeevan-ux/llm-benchmark-engine</a></p>
+  <p>Datasets: GSM8K · MedMCQA · HumanEval · TriviaQA · Inference: Groq LPU</p>
+</footer>
+
+<script>
+  // Real benchmark data from /results — 20-sample runs only
+  const data = [
+    { model: "llama3-70b", domain: "math",      accuracy: 0.95, hallucination: 0.05, latency: 669,  tokens: null },
+    { model: "qwen",       domain: "reasoning", accuracy: 0.85, hallucination: 0.10, latency: 1824, tokens: null },
+    { model: "llama3-70b", domain: "reasoning", accuracy: 0.80, hallucination: 0.20, latency: 249,  tokens: null },
+    { model: "llama3-8b",  domain: "math",      accuracy: 0.80, hallucination: 0.20, latency: 2369, tokens: null },
+    { model: "llama3-70b", domain: "medical",   accuracy: 0.70, hallucination: 0.30, latency: 170,  tokens: null },
+    { model: "llama3-70b", domain: "coding",    accuracy: 0.70, hallucination: 0.30, latency: 299,  tokens: null },
+    { model: "llama3-8b",  domain: "reasoning", accuracy: 0.70, hallucination: 0.30, latency: 872,  tokens: null },
+    { model: "qwen",       domain: "coding",    accuracy: 0.65, hallucination: 0.35, latency: 5918, tokens: null },
+    { model: "llama3-8b",  domain: "coding",    accuracy: 0.60, hallucination: 0.40, latency: 209,  tokens: null },
+    { model: "llama3-8b",  domain: "medical",   accuracy: 0.50, hallucination: 0.50, latency: 184,  tokens: null },
+    { model: "qwen",       domain: "math",      accuracy: 0.35, hallucination: 0.65, latency: 4221, tokens: null },
+    { model: "qwen",       domain: "medical",   accuracy: 0.25, hallucination: 0.55, latency: 4303, tokens: null },
+  ];
+
+  const modelColors = {
+    "llama3-70b": "#00d4ff",
+    "llama3-8b":  "#10b981",
+    "qwen":       "#a78bfa"
+  };
+
+  const domainClass = {
+    "math":      "d-math",
+    "medical":   "d-medical",
+    "coding":    "d-coding",
+    "reasoning": "d-reasoning"
+  };
+
+  const halluClass = (h) => {
+    if (h <= 0.15) return "h-low";
+    if (h <= 0.35) return "h-mid";
+    return "h-high";
+  };
+
+  const tbody = document.getElementById("leaderboard-body");
+
+  data.forEach((row, i) => {
+    const acc = (row.accuracy * 100).toFixed(0);
+    const hal = (row.hallucination * 100).toFixed(0);
+    const lat = row.latency >= 1000
+      ? (row.latency / 1000).toFixed(2) + "s"
+      : row.latency.toFixed(0) + "ms";
+    const color = modelColors[row.model] || "#e2e8f0";
+    const isWinner = i === 0;
+
+    const tr = document.createElement("tr");
+    if (isWinner) tr.classList.add("winner-row");
+
+    tr.innerHTML = `
+      <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${String(i+1).padStart(2,"0")}</td>
+      <td>
+        <span class="model-name" style="color:${color}">${row.model}</span>
+        ${isWinner ? '<span style="font-size:10px;color:var(--accent);margin-left:8px;font-family:var(--mono)">★ TOP</span>' : ""}
+      </td>
+      <td><span class="domain-tag ${domainClass[row.domain]}">${row.domain}</span></td>
+      <td class="bar-cell">
+        <div class="bar-label" style="color:${color}">${acc}%</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${acc}%;background:${color}"></div></div>
+      </td>
+      <td style="text-align:right"><span class="hallu-pill ${halluClass(row.hallucination)}">${hal}%</span></td>
+      <td class="latency">${lat}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right">—</td>
+    `;
+    tbody.appendChild(tr);
+  });
+</script>
+</body>
+</html>
