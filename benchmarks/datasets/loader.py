@@ -14,20 +14,21 @@ def load_samples(domain: str, num_samples: int) -> list[dict]:
         raise ValueError(f"Unknown domain: {domain}. Choose: medical, math, coding, reasoning")
 
 def _load_medqa(n: int) -> list[dict]:
-    # Using a clean parquet version that doesn't need a loading script
-    ds = load_dataset("GBaker/MedQA-USMLE-4-options", split="test")
+    # Clean parquet MedQA dataset, no loading script
+    ds = load_dataset("openlifescienceai/medmcqa", split="validation")
     samples = random.sample(list(ds), min(n, len(ds)))
     results = []
     for s in samples:
-        options_text = "\n".join([
-            f"A: {s['options']['A']}",
-            f"B: {s['options']['B']}",
-            f"C: {s['options']['C']}",
-            f"D: {s['options']['D']}"
-        ])
+        options_text = (
+            f"A: {s['opa']}\n"
+            f"B: {s['opb']}\n"
+            f"C: {s['opc']}\n"
+            f"D: {s['opd']}"
+        )
+        correct = ["A", "B", "C", "D"][s["cop"]]
         results.append({
             "question": f"{s['question']}\n\nOptions:\n{options_text}",
-            "answer": s["answer_idx"],
+            "answer": correct,
             "domain": "medical"
         })
     return results
@@ -59,14 +60,14 @@ def _load_humaneval(n: int) -> list[dict]:
     ]
 
 def _load_hotpotqa(n: int) -> list[dict]:
-    # HotpotQA original host is offline (May 2025), all forks use blocked loading scripts.
-    # Using TriviaQA (rc subset) as reasoning benchmark — same multi-hop question style.
-    ds = load_dataset("trivia_qa", "rc", split="validation")
+    # All hotpotqa/trivia_qa forks use blocked loading scripts.
+    # lucadiliello/triviaqa is clean parquet, no loading script needed.
+    ds = load_dataset("lucadiliello/triviaqa", split="train")
     samples = random.sample(list(ds), min(n, len(ds)))
     return [
         {
             "question": s["question"],
-            "answer": s["answer"]["value"],
+            "answer": s["answers"][0] if isinstance(s["answers"], list) else s["answers"],
             "domain": "reasoning"
         }
         for s in samples
