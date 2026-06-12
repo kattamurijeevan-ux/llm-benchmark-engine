@@ -1,3 +1,5 @@
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi import FastAPI, HTTPException
 from app.models import BenchmarkRunRequest, CompareRequest
 from app.database import SessionLocal, RunRecord
@@ -8,7 +10,11 @@ app = FastAPI(
     version="1.0.0",
     description="Measures LLM accuracy, hallucination rate, and latency across medical, math, coding, and reasoning domains."
 )
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse("static/dashboard.html")
 @app.get("/")
 def root():
     return {
